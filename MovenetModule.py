@@ -50,7 +50,7 @@ def get_coordinates(keypoints, point_number):
 import math
 import cv2
 
-def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw=True):
+def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw=True,correct_posture=True):
     """
     Find the angle between three specified keypoints and display it on the image.
 
@@ -64,6 +64,11 @@ def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw
     - angle: Calculated angle in degrees.
     """
     # Get the coordinates of the specified keypoints
+    if correct_posture:
+        color = (0, 255, 0)  # Green color for correct posture
+    else:
+        color = (0, 0, 255)  # Red color for incorrect posture
+
     y1, x1, c1 = get_coordinates(keypoints, p1)
     y2, x2, c2 = get_coordinates(keypoints, p2)
     y3, x3, c3 = get_coordinates(keypoints, p3)
@@ -77,15 +82,15 @@ def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw
 
     if (c1 > confidence_threshold) & (c2 > confidence_threshold) &  (c3 > confidence_threshold):
         if draw:
-            cv2.line(img, (x1, y1), (x2, y2), (255, 255, 255), 2)
-            cv2.line(img, (x3, y3), (x2, y2), (255, 255, 255), 2)
+            cv2.line(img, (x1, y1), (x2, y2), color, 2)
+            cv2.line(img, (x3, y3), (x2, y2), color, 2)
 
-            cv2.circle(img, (x1, y1), 4, (0, 255, 0), -1)
-            cv2.circle(img, (x1, y1), 7, (0, 255, 0), 1)
-            cv2.circle(img, (x2, y2), 4, (0, 255, 0), -1)
-            cv2.circle(img, (x2, y2), 7, (0, 255, 0), 1)
-            cv2.circle(img, (x3, y3), 4, (0, 255, 0), -1)
-            cv2.circle(img, (x3, y3), 7, (0, 255, 0), 1)
-            cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+            cv2.circle(img, (x1, y1), 4, color, -1)
+            cv2.circle(img, (x1, y1), 7, color, 1)
+            cv2.circle(img, (x2, y2), 4, color, -1)
+            cv2.circle(img, (x2, y2), 7, color, 1)
+            cv2.circle(img, (x3, y3), 4, color, -1)
+            cv2.circle(img, (x3, y3), 7, color, 1)
+            cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50), cv2.FONT_HERSHEY_PLAIN, 2,color, 2)
 
     return angle
