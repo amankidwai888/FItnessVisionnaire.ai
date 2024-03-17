@@ -32,7 +32,6 @@ with open('svm_model.pkl', 'rb') as model_file:
 with open('encoder.pkl', 'rb') as encoder_file:
     label_encoder = pickle.load(encoder_file)
 
-
 # load model
 interpreter = tf.lite.Interpreter(model_path='movenet_singlepose_lightning.tflite')
 interpreter.allocate_tensors()
@@ -122,6 +121,8 @@ for video_file in video_files:
         start_time = time.time()
 
         frame = cv2.resize(frame, (640,480))
+        start_time_MN = time.time()
+
 
         # Reshape image
         img = frame.copy()
@@ -144,11 +145,11 @@ for video_file in video_files:
         # Calculate time interval (assuming constant FPS)
         time_interval = frame_number / fps
 
-        start_time_MN = time.time()
+        # start_time_MN = time.time()
 
         # Extract keypoints 5-14
         keypoints_5_to_14 = [mm.get_coordinates(keypoints_with_scores, i)[:2] for i in range(5, 15)]
-        endtime_time_MN = time.time()
+        
 
         # Reset Data_list before appending the new row
         data_list = []
@@ -164,7 +165,7 @@ for video_file in video_files:
             df = pd.DataFrame(data_list)
 
 
-        #Predict correctness using SVM model
+        # Predict correctness using SVM model
 
         df_pp=svm.preprocess_new_instance(df)
         df_pp = svm.extract_features_from_instance(df_pp)
@@ -186,6 +187,7 @@ for video_file in video_files:
             posture = False
 
         # #Biceps annotations
+        posture = False
         mm.find_angle_and_display(frame, 5, 7, 9, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
         mm.find_angle_and_display(frame, 6, 8, 10, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
 
@@ -195,11 +197,12 @@ for video_file in video_files:
 
         # Save the annotated frame to the output video
         out.write(frame)
+        endtime_time_MN = time.time()
 
         # Calculate latency for current frame
-        latency_per_frame = endtime_time_MN - start_time_MN
+        latency_microseconds = (endtime_time_MN - start_time_MN) 
         # Print latency per frame
-        print("Latency per frame:", latency_per_frame, "seconds")
+        print("Latency per frame:", latency_microseconds, "seconds")
         cv2.imshow('MoveNet Lightning', frame)
 
         if cv2.waitKey(10) & 0xFF == ord('q'):

@@ -1,2 +1,1 @@
-video_name,frame_number,time_interval,right_shoulder_x,right_shoulder_y,left_shoulder_x,left_shoulder_y,right_elbow_x,right_elbow_y,left_elbow_x,left_elbow_y,right_hand_x,right_hand_y,left_hand_x,left_hand_y,waist_right_x,waist_right_y,waist_left_x,waist_left_y,right_knee_x,right_knee_y,left_knee_x,left_knee_y
-u.mp4,8,0.27586206896551724,177,367,176,296,228,366,225,267,182,346,193,277,298,350,296,313,386,346,381,312
+video_name,frame_number,time_interval,keypoint_5,keypoint_6,keypoint_7,keypoint_8,keypoint_9,keypoint_10,keypoint_11,keypoint_12,keypoint_13,keypoint_14
