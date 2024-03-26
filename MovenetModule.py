@@ -50,7 +50,7 @@ def get_coordinates(keypoints, point_number):
 import math
 import cv2
 
-def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw=True,correct_posture=True):
+def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw=True,correct_posture=1):
     """
     Find the angle between three specified keypoints and display it on the image.
 
@@ -64,9 +64,9 @@ def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw
     - angle: Calculated angle in degrees.
     """
     # Get the coordinates of the specified keypoints
-    if correct_posture:
+    if correct_posture== 1:
         color = (0, 255, 0)  # Green color for correct posture
-    else:
+    elif correct_posture== 0:
         color = (0, 0, 255)  # Red color for incorrect posture
 
     y1, x1, c1 = get_coordinates(keypoints, p1)
@@ -80,7 +80,7 @@ def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw
 
     # Draw on the image
 
-    if (c1 > confidence_threshold) & (c2 > confidence_threshold) &  (c3 > confidence_threshold):
+    if (c1 > confidence_threshold) & (c2 > confidence_threshold) & (c3 > confidence_threshold):
         if draw:
             cv2.line(img, (x1, y1), (x2, y2), color, 2)
             cv2.line(img, (x3, y3), (x2, y2), color, 2)

@@ -2,16 +2,15 @@ from sklearn.exceptions import DataConversionWarning, InconsistentVersionWarning
 
 import MovenetModule as mm
 import SVM as svm
-import tensorflow as tf
-import numpy as np
 import cv2
-import pandas as pd
-import os
-import pickle
-from datetime import datetime
 import warnings
 import time
-
+import pandas as pd
+import time
+import pickle
+import keras
+import numpy as np
+import os
 # Before loading the SVM model and label encoder
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
@@ -21,12 +20,23 @@ warnings.filterwarnings("ignore", category=DataConversionWarning)
 # Your code to load SVM model and label encoder goes here
 
 # After loading the SVM model and label encoder
+import tensorflow as tf
 
 
+# keras_version = keras.__version__
+# print("Keras version:", keras_version)
 
 #Load SVM model
-with open('svm_model.pkl', 'rb') as model_file:
-    svm_model = pickle.load(model_file)
+# with open("svm_model.pkl", 'rb') as file:
+#     svm_model= pickle.load(file)
+
+# svm_model.summary()
+# svm_model.load_weights("model.weights.h5")
+svm_model=keras.models.load_model("svm_81.11.h5")
+with open("label_encoder_bicepcurlphase.pkl", 'rb') as file:
+    label_encoder_bicepcurl = pickle.load(file)
+with open("label_encoder_orientation.pkl", 'rb') as file:
+    label_encoder_orientation = pickle.load(file)
 
 # Load label encoder
 with open('encoder.pkl', 'rb') as encoder_file:
@@ -38,12 +48,12 @@ interpreter.allocate_tensors()
 
 # Draw Edges
 EDGES = {
-    # (0, 1): 'm',
-    # (0, 2): 'c',
-    # (1, 3): 'm',
-    # (2, 4): 'c',
-    # (0, 5): 'm',
-    # (0, 6): 'c',
+    (0, 1): 'm',
+    (0, 2): 'c',
+    (1, 3): 'm',
+    (2, 4): 'c',
+    (0, 5): 'm',
+    (0, 6): 'c',
     (5, 7): 'm',
     (7, 9): 'm',
     (6, 8): 'c',
@@ -71,7 +81,7 @@ for edge, color in EDGES.items():
     # print((int(x2), int(y2)))
 
 # Initialize DataFrame
-columns = ['video_name', 'frame_number', 'time_interval'] + [f'keypoint_{i}' for i in range(5, 15)]
+columns = ['video_name', 'frame_number', 'time_interval'] + [f'keypoint_{i}' for i in range(3, 17)]
 df = pd.DataFrame(columns=columns)
 
 
@@ -89,10 +99,11 @@ video_files = [f for f in os.listdir(folder_path) if f.endswith('.mp4')]
 for video_file in video_files:
     video_path = os.path.join(folder_path, video_file)
     output_video_path = os.path.join(output_folder_path, f"annotated_{video_file}")
-    cap = cv2.VideoCapture(video_path)
+    # cap = cv2.VideoCapture(video_path)
 
     #for reading from webcam
-    # cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)
+    video_file = "webcam"
 
     # Get video properties
     frame_width = int(cap.get(3))
@@ -118,10 +129,10 @@ for video_file in video_files:
             print("Empty frame. Skipping...")
             continue
 
-        start_time = time.time()
+
 
         frame = cv2.resize(frame, (640,480))
-        start_time_MN = time.time()
+        # start_time_MN = time.time()
 
 
         # Reshape image
@@ -133,7 +144,7 @@ for video_file in video_files:
         input_details = interpreter.get_input_details()
         output_details = interpreter.get_output_details()
 
-
+        start_time_MN = time.time()
         # Make predictions
         interpreter.set_tensor(input_details[0]['index'], np.array(input_image))
         interpreter.invoke()
@@ -148,7 +159,7 @@ for video_file in video_files:
         # start_time_MN = time.time()
 
         # Extract keypoints 5-14
-        keypoints_5_to_14 = [mm.get_coordinates(keypoints_with_scores, i)[:2] for i in range(5, 15)]
+        keypoints_3_to_16 = [mm.get_coordinates(keypoints_with_scores, i)[:2] for i in range(3, 17)]
         
 
         # Reset Data_list before appending the new row
@@ -156,8 +167,8 @@ for video_file in video_files:
 
         # Create a row for the DataFrame
         row_data = {'video_name': video_file, 'frame_number': frame_number, 'time_interval': time_interval}
-        for i, keypoint in enumerate(keypoints_5_to_14):
-            row_data[f'keypoint_{i+5}'] = keypoint
+        for i, keypoint in enumerate(keypoints_3_to_16):
+            row_data[f'keypoint_{i+3}'] = keypoint
 
         # Append row data to the list
         data_list.append(row_data)
@@ -167,10 +178,11 @@ for video_file in video_files:
 
         # Predict correctness using SVM model
 
-        df_pp=svm.preprocess_new_instance(df)
-        df_pp = svm.extract_features_from_instance(df_pp)
+        df_pp=svm.preprocess_new_instance(df,label_encoder_bicepcurl=label_encoder_bicepcurl,label_encoder_orientation=label_encoder_orientation)
+        # df_pp = svm.extract_features_from_instance(df_pp)
         # print(df_pp.shape)
         # print(df_pp.head())
+        df1=df
 
         features = ['video_name', 'frame_number', 'time_interval', 'right_shoulder_x', 'right_shoulder_y',
                     'left_shoulder_x', 'left_shoulder_y', 'right_elbow_x', 'right_elbow_y', 'left_elbow_x',
@@ -179,24 +191,26 @@ for video_file in video_files:
                     'left_knee_y', 'right_elbow_angle', 'left_elbow_angle', 'right_waist_angle', 'left_waist_angle',
                     'bicep_curl_phase_encoded']
 
-        posture = True
+        # posture = True
         correctness_prediction = svm.predict_correctness(df_pp, svm_model)
-        if(correctness_prediction=='correct'):
-            posture = True
-        elif(correctness_prediction=='incorrect'):
+        if(correctness_prediction==1):
             posture = False
+        if(correctness_prediction==0):
+            posture = True
 
         # #Biceps annotations
-        posture = False
+        # posture = False
         mm.find_angle_and_display(frame, 5, 7, 9, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
         mm.find_angle_and_display(frame, 6, 8, 10, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
 
         # Display correctness prediction for the current frame
-        print(f'Frame {frame_number} - Correctness Prediction: {correctness_prediction}')
-
-
+        # print(f'Frame {frame_number} - Correctness Prediction: {correctness_prediction}')
+        if correctness_prediction == 1:
+            print("Incorrect")
+        elif correctness_prediction == 0:
+            print("Correct")
         # Save the annotated frame to the output video
-        out.write(frame)
+        # out.write(frame)
         endtime_time_MN = time.time()
 
         # Calculate latency for current frame

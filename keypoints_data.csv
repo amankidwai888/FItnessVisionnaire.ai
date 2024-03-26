@@ -1,1 +1,2 @@
-video_name,frame_number,time_interval,keypoint_5,keypoint_6,keypoint_7,keypoint_8,keypoint_9,keypoint_10,keypoint_11,keypoint_12,keypoint_13,keypoint_14
+video_name,frame_number,time_interval,keypoint_3,keypoint_4,keypoint_5,keypoint_6,keypoint_7,keypoint_8,keypoint_9,keypoint_10,keypoint_11,keypoint_12,keypoint_13,keypoint_14,keypoint_15,keypoint_16
+u.mp4,37,1.2758620689655173,"(127, 351)","(131, 316)","(173, 383)","(177, 304)","(235, 386)","(230, 298)","(234, 351)","(229, 296)","(297, 353)","(294, 309)","(395, 345)","(390, 313)","(417, 347)","(416, 325)"

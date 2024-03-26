@@ -1,17 +1,21 @@
 from hmac import new
 
+# Define a function to remove brackets and commas
+import numpy as np
+import tensorflow as tf
 import pandas as pd
 import pickle
 import math
 import warnings
-from sklearn.exceptions import InconsistentVersionWarning, DataConversionWarning
+# from sklearn.exceptions import InconsistentVersionWarning, DataConversionWarning
 
 # Before loading the SVM model and label encoder
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
-warnings.filterwarnings("ignore", category=DataConversionWarning)
+# warnings.filterwarnings("ignore", category=UserWarning)
+# # warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+# warnings.filterwarnings("ignore", category=DataConversionWarning)
 
 from sklearn.preprocessing import LabelEncoder
+
 
 # Assuming svm_classifier is your trained SVM classifier
 # Define a function to split coordinates and create new columns
@@ -28,18 +32,13 @@ def split_coordinates(df, column_name):
         if new_columns[0] not in df.columns:
             df[new_columns] = df[column_name].apply(lambda x: pd.Series(x.split(' ')))
 
-    df.drop(column_name, axis=1, inplace=True)
+    # df.drop(column_name, axis=1, inplace=True)
 
-
-# Define a function to remove brackets and commas
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-import math
 
 # Define the RBF kernel function
 def rbf_kernel(x1, x2, gamma=0.1):
     return tf.exp(-gamma * tf.reduce_sum((x1 - x2) ** 2, axis=-1))
+
 
 # Define the non-linear SVM model
 class NonLinearSVM(tf.keras.Model):
@@ -53,13 +52,16 @@ class NonLinearSVM(tf.keras.Model):
         kernel_matrix = rbf_kernel(inputs, support_vectors, self.gamma)
         return tf.reduce_sum(tf.multiply(kernel_matrix, dual_coefficients), axis=-1)
 
+
 # Define the loss function for SVM
 def hinge_loss(y_true, y_pred):
     return tf.reduce_mean(tf.maximum(0., 1 - y_true * y_pred))
 
+
 # Function to calculate Euclidean distance
 def euclidean_distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
 
 # Function to calculate cumulative size
 def calculate_cumulative_size(df):
@@ -67,20 +69,25 @@ def calculate_cumulative_size(df):
     cumulative_distance = 0
 
     for index, row in df.iterrows():
-        shoulder_waist_dist = euclidean_distance(row['right_shoulder_x'], row['right_shoulder_y'], row['waist_right_x'], row['waist_right_y'])
-        waist_knees_dist = euclidean_distance(row['waist_right_x'], row['waist_right_y'], row['right_knee_x'], row['right_knee_y'])
-        knees_feet_dist = euclidean_distance(row['right_knee_x'], row['right_knee_y'], row['right_knee_x'], row['right_knee_y'])  # Assuming feet are at the knees position
+        shoulder_waist_dist = euclidean_distance(row['right_shoulder_x'], row['right_shoulder_y'], row['waist_right_x'],
+                                                 row['waist_right_y'])
+        waist_knees_dist = euclidean_distance(row['waist_right_x'], row['waist_right_y'], row['right_knee_x'],
+                                              row['right_knee_y'])
+        knees_feet_dist = euclidean_distance(row['right_knee_x'], row['right_knee_y'], row['right_knee_x'],
+                                             row['right_knee_y'])  # Assuming feet are at the knees position
 
         cumulative_distance += shoulder_waist_dist + waist_knees_dist + knees_feet_dist
         cumulative_size.append(cumulative_distance)
 
     return cumulative_size
 
+
 # Function to split coordinates and create new columns
-def split_coordinates(df, column_name):
-    new_columns = ['{}_x'.format(column_name), '{}_y'.format(column_name)]
-    df[new_columns] = df[column_name].apply(lambda x: pd.Series(x.split(' ')))
-    df.drop(column_name, axis=1, inplace=True)
+# def split_coordinates(df, column_name):
+#     new_columns = ['{}_x'.format(column_name), '{}_y'.format(column_name)]
+#     df[new_columns] = df[column_name].astype(str).apply(lambda x: pd.Series(x.split(' ')))
+
+#     df.drop(column_name, axis=1, inplace=True)
 
 # Function to determine orientation
 def determine_orientation(row):
@@ -117,11 +124,15 @@ def determine_orientation(row):
     else:
         return 'Unknown'
 
+
 # Function to remove brackets and commas from coordinates
 def clean_coordinates(df, column_name):
     for coordinate_type in ['_x', '_y']:
-        df[column_name + coordinate_type] = df[column_name + coordinate_type].str.replace(r'[()]', '')
-        df[column_name + coordinate_type] = df[column_name + coordinate_type].str.replace(',', '')
+        df[column_name] = df[column_name].astype(str)
+        df[column_name + coordinate_type] = df[column_name + coordinate_type].astype(str).str.replace(r'[()]', '')
+        df[column_name + coordinate_type] = df[column_name + coordinate_type].astype(str).str.replace(',', '')
+        # df.drop(column_name, axis=1, inplace=True)
+
 
 # Function to find angle
 def find_angle(row, shoulder, elbow, hand):
@@ -143,7 +154,9 @@ def find_angle(row, shoulder, elbow, hand):
     return angle
 
 
-def preprocess_new_instance(new_instance, scaler=None, encoder=None):
+def preprocess_new_instance(new_instance, label_encoder_bicepcurl, label_encoder_orientation,scaler=None, encoder=None):
+    new_instance = pd.DataFrame(new_instance)
+
     # Assume new_instance is a DataFrame with the same structure as your training data
     column_mapping = {
         'keypoint_3': 'right_ear',
@@ -161,6 +174,11 @@ def preprocess_new_instance(new_instance, scaler=None, encoder=None):
         'keypoint_15': 'right_foot',
         'keypoint_16': 'left_foot'
     }
+    # print(1)
+
+    # Handle missing or empty values
+    new_instance.fillna(-1, inplace=True)  # Assuming missing values are represented as NaN, replace them with 0
+    new_instance.replace('', -1, inplace=True)  # Replace empty strings with 0
 
     # Apply the same column renaming logic if necessary
     new_instance.rename(columns=column_mapping, inplace=True)
@@ -168,18 +186,22 @@ def preprocess_new_instance(new_instance, scaler=None, encoder=None):
     keypoint_columns = ['right_ear', 'left_ear', 'right_shoulder', 'left_shoulder', 'right_elbow', 'left_elbow',
                         'right_hand', 'left_hand', 'waist_right', 'waist_left',
                         'right_knee', 'left_knee', 'right_foot', 'left_foot']
+    # print(new_instance.columns)
     for column in keypoint_columns:
         split_coordinates(new_instance, column)
+    # print(3)
 
     for column in keypoint_columns:
         clean_coordinates(new_instance, column)
-
-
+    # print(3)
+    # print(new_instance.columns)
 
     df_copy = pd.DataFrame(columns=["video_name"])
     df_copy['video_name'] = new_instance["video_name"]
 
     new_instance = new_instance.apply(pd.to_numeric, errors='coerce')
+    # print(4)
+    # print(new_instance.columns)
 
     # Calculate imaginary feet points based on knee position
     new_instance['right_foot_x'] = np.where(new_instance['right_foot_x'].isnull(), new_instance['right_knee_x'],
@@ -199,6 +221,7 @@ def preprocess_new_instance(new_instance, scaler=None, encoder=None):
                                             new_instance[
                                                 'right_knee_y'])  # Assuming a typical distance from waist to knee
     new_instance['left_knee_x'] = np.where(new_instance['left_knee_x'].isnull(), new_instance['waist_left_x'] - 30,
+
                                            new_instance[
                                                'left_knee_x'])  # Assuming a typical distance from waist to knee
     new_instance['left_knee_y'] = np.where(new_instance['left_knee_y'].isnull(), new_instance['waist_left_y'] + 50,
@@ -218,23 +241,33 @@ def preprocess_new_instance(new_instance, scaler=None, encoder=None):
     # Apply the function to each row of the DataFrame to determine orientation
     new_instance['orientation'] = new_instance.apply(determine_orientation, axis=1)
 
-
-
-    # Handle missing or empty values
-    new_instance.fillna(-1, inplace=True)  # Assuming missing values are represented as NaN, replace them with 0
-    new_instance.replace('', -1, inplace=True)  # Replace empty strings with 0
+    # print(5)
+    # print(new_instance.columns)
 
     # Calculate angles for right elbow, left elbow, right waist, left waist, knee joint, back, armpits/shoulders, and neck
-    new_instance['right_elbow_angle'] = new_instance.apply(find_angle,args=('right_shoulder', 'right_elbow', 'right_hand'), axis=1)
-    new_instance['left_elbow_angle'] = new_instance.apply(find_angle, args=('left_shoulder', 'left_elbow', 'left_hand'),  axis=1)
-    new_instance['right_waist_angle'] = new_instance.apply(find_angle,args=('right_shoulder', 'waist_right', 'right_knee'), axis=1)
-    new_instance['left_waist_angle'] = new_instance.apply(find_angle, args=('left_shoulder', 'waist_left', 'left_knee'), axis=1)
-    new_instance['right_knee_angle'] = new_instance.apply(find_angle, args=('right_knee', 'waist_right', 'right_foot'),axis=1)
-    new_instance['left_knee_angle'] = new_instance.apply(find_angle, args=('left_knee', 'waist_left', 'left_foot'), axis=1)
-    new_instance['back_angle'] = new_instance.apply(find_angle, args=('waist_right', 'waist_left', 'left_shoulder'),axis=1)
-    new_instance['left_armpits_angle'] = new_instance.apply(find_angle, args=('left_elbow', 'left_shoulder', 'waist_right'), axis=1)
-    new_instance['right_armpits_angle'] = new_instance.apply(find_angle,args=('right_elbow', 'right_shoulder', 'waist_left'), axis=1)
-    new_instance['neck_angle'] = new_instance.apply(find_angle, args=('right_ear', 'right_shoulder', 'left_shoulder'),axis=1)
+    new_instance['right_elbow_angle'] = new_instance.apply(find_angle,
+                                                           args=('right_shoulder', 'right_elbow', 'right_hand'), axis=1)
+    new_instance['left_elbow_angle'] = new_instance.apply(find_angle, args=('left_shoulder', 'left_elbow', 'left_hand'),
+                                                          axis=1)
+    new_instance['right_waist_angle'] = new_instance.apply(find_angle,
+                                                           args=('right_shoulder', 'waist_right', 'right_knee'), axis=1)
+    new_instance['left_waist_angle'] = new_instance.apply(find_angle, args=('left_shoulder', 'waist_left', 'left_knee'),
+                                                          axis=1)
+    new_instance['right_knee_angle'] = new_instance.apply(find_angle, args=('right_knee', 'waist_right', 'right_foot'),
+                                                          axis=1)
+    new_instance['left_knee_angle'] = new_instance.apply(find_angle, args=('left_knee', 'waist_left', 'left_foot'),
+                                                         axis=1)
+    new_instance['back_angle'] = new_instance.apply(find_angle, args=('waist_right', 'waist_left', 'left_shoulder'),
+                                                    axis=1)
+    new_instance['left_armpits_angle'] = new_instance.apply(find_angle,
+                                                            args=('left_elbow', 'left_shoulder', 'waist_right'), axis=1)
+    new_instance['right_armpits_angle'] = new_instance.apply(find_angle,
+                                                             args=('right_elbow', 'right_shoulder', 'waist_left'),
+                                                             axis=1)
+    new_instance['neck_angle'] = new_instance.apply(find_angle, args=('right_ear', 'right_shoulder', 'left_shoulder'),
+                                                    axis=1)
+    # print(6)
+    # print(new_instance.columns)
 
     # Calculate Euclidean distance between ear and shoulder
     new_instance['ear_shoulder_distance'] = new_instance.apply(
@@ -255,13 +288,13 @@ def preprocess_new_instance(new_instance, scaler=None, encoder=None):
     new_instance['left_hands_shoulders_distance'] = new_instance.apply(
         lambda row: euclidean_distance(row['left_hand_x'], row['left_hand_y'], row['left_shoulder_x'],
                                        row['left_shoulder_y']), axis=1)
-
-
+    # print(7)
 
     #
     new_instance['video_name'] = df_copy['video_name']
     # # Convert 'video_name' to integer using LabelEncoder
     #
+    # print(8)
 
     # encoder = LabelEncoder()
     # new_instance['video_name'] = encoder.fit_transform(new_instance['video_name'])
@@ -269,15 +302,34 @@ def preprocess_new_instance(new_instance, scaler=None, encoder=None):
     new_instance['video_key'] = pd.factorize(new_instance['video_name'])[0]
     # Replace 'video_key' with 'video_name'
     new_instance['video_name'] = new_instance['video_key']
+    # print(9)
+    new_instance = extract_features_from_instance(new_instance)
+    # print(10)
 
     # Drop the 'video_key' column
+    # new_instance['video_name'] = new_instance['video_name'].astype(str)
+    new_instance['orientation'] = new_instance["orientation"].astype(str)
+    new_instance["bicep_curl_phase"] = new_instance["bicep_curl_phase"].astype(str)
     new_instance.drop('video_key', axis=1, inplace=True)
-    with open("label_encoder_orientation.pkl", 'rb') as file:
-        label_encoder_orientation.pkl = pickle.load(file)
+    # with open("label_encoder_orientation.pkl", 'rb') as file:
+    #     label_encoder_orientation = pickle.load(file)
+    new_instance['orientation_encoded'] = label_encoder_orientation.fit_transform(new_instance['orientation'])
+    new_instance.drop(["orientation"], axis=1, inplace=True)
 
-    with open("label_encoder_orientation.pkl", 'rb') as file:
-        label_encoder_orientation.pkl = pickle.load(file)
+    # with open("label_encoder_bicepcurlphase.pkl", 'rb') as file:
+    #     label_encoder_bicepcurl = pickle.load(file)
+    new_instance['bicep_curl_phase_encoded'] = label_encoder_bicepcurl.fit_transform(new_instance['bicep_curl_phase'])
+    new_instance.drop(["bicep_curl_phase"], axis=1, inplace=True)
 
+    columns_to_drop = [col for col in new_instance.columns if 'x' in col or 'y' in col]
+    new_instance = new_instance.drop(columns=columns_to_drop)
+    print(type(new_instance))
+
+    columns_to_drop = ['right_ear', 'left_ear', 'right_shoulder', 'left_shoulder',
+                       'right_elbow', 'left_elbow', 'right_hand', 'left_hand',
+                       'waist_right', 'waist_left', 'right_knee', 'left_knee',
+                       'right_foot', 'left_foot']
+    new_instance.drop(columns=columns_to_drop, inplace=True)
 
     return new_instance
 
@@ -308,35 +360,52 @@ def extract_features_from_instance(df):
 
         encoder = LabelEncoder()
         # Fit and transform the 'video_name' column
+
+        df['video_name'] = df['video_name'].astype(str)
         df['video_name'] = encoder.fit_transform(df['video_name'])
-        # Convert 'bicep_curl_phase' to integer using LabelEncoder
-        # Initialize the LabelEncoder
-        phase_encoder = LabelEncoder()
+
 
         # Fit and transform the 'bicep_curl_phase' column
-        df['bicep_curl_phase'] = phase_encoder.fit_transform(df['bicep_curl_phase'])
+        # df['bicep_curl_phase'] = phase_encoder.fit_transform(df['bicep_curl_phase'])
         # print(df.dtypes)
 
     return df
 
 
-
 def predict_correctness(df, model):
-
     # Convert features to a DataFrame
     # features_df = pd.DataFrame([features], columns=features)
     # row_array = df.iloc[0].values
 
-    data_2d_list = df.values.tolist()
+    # data_2d_list = df.values.tolist()
+    # print(1)
 
     # Use the trained model to make predictions
-    prediction = model.predict(data_2d_list)
+    prediction = model.predict(df)
+    # Assuming prediction is your 3D array
+    # prediction_flat = np.array(prediction).flatten()
+    # print(2)
 
-    with open('encoder.pkl', 'rb') as model_file:
-        label_encoder = pickle.load(model_file)
+    flattened_array = prediction.flatten()
+    # print(3)
 
-    # Map the numeric prediction back to 'correct' or 'incorrect' using the label encoder
-    result = label_encoder.inverse_transform([prediction])[0]
+    # Round off values to 0 or 1
+    rounded_array = np.round(flattened_array).astype(int)
+    # print(rounded_array)
 
-    return result
+    prediction = rounded_array
+    # print(4)
+
+    # with open('label_encoder.pkl', 'rb') as model_file:
+    #     label_encoder = pickle.load(model_file)
+    # print(5)
+
+    # result = label_encoder.inverse_transform(prediction)
+
+    # # Map the numeric prediction back to 'correct' or 'incorrect' using the label encoder
+    # result = label_encoder.inverse_transform([prediction])
+    # print(6)
+    # print(result)
+
+    return prediction
 
