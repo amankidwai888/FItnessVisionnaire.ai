@@ -19,12 +19,9 @@ warnings.filterwarnings("ignore", category=DataConversionWarning)
 # Load SVM model and label encoder
 # Your code to load SVM model and label encoder goes here
 
+
 # After loading the SVM model and label encoder
 import tensorflow as tf
-
-
-# keras_version = keras.__version__
-# print("Keras version:", keras_version)
 
 #Load SVM model
 # with open("svm_model.pkl", 'rb') as file:
@@ -88,7 +85,7 @@ df = pd.DataFrame(columns=columns)
 # Make Detections
 
 # # code for training annotations on dataset
-folder_path = 'Train'
+folder_path = 'new'
 output_folder_path = 'Train_annotated'
 
 
@@ -100,7 +97,6 @@ for video_file in video_files:
     video_path = os.path.join(folder_path, video_file)
     output_video_path = os.path.join(output_folder_path, f"annotated_{video_file}")
     # cap = cv2.VideoCapture(video_path)
-
     #for reading from webcam
     cap = cv2.VideoCapture(0)
     video_file = "webcam"
@@ -195,13 +191,17 @@ for video_file in video_files:
         correctness_prediction = svm.predict_correctness(df_pp, svm_model)
         if(correctness_prediction==1):
             posture = False
+            feedback = svm.check_posture_conditions(df_pp)
         if(correctness_prediction==0):
             posture = True
+
 
         # #Biceps annotations
         # posture = False
         mm.find_angle_and_display(frame, 5, 7, 9, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
         mm.find_angle_and_display(frame, 6, 8, 10, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
+        mm.find_angle_and_display(frame, 6, 12, 14, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
+        mm.find_angle_and_display(frame, 5, 11, 13, keypoints_with_scores, 0.3, draw=True, correct_posture=posture)
 
         # Display correctness prediction for the current frame
         # print(f'Frame {frame_number} - Correctness Prediction: {correctness_prediction}')

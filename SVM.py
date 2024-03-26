@@ -345,6 +345,8 @@ def extract_features_from_instance(df):
     # Create a new column for phase and initialize with an empty string
     df['bicep_curl_phase'] = ''
 
+
+
     # Iterate through rows and label phases
     for video_name, video_df in df.groupby('video_name'):
         # Sort the DataFrame based on time_interval
@@ -409,3 +411,17 @@ def predict_correctness(df, model):
 
     return prediction
 
+def check_posture_conditions(row):
+    posture_issues = []
+
+    # Check for bent knees
+    if row['left_knee_angle'] == 0 or row['right_knee_angle'] == 0:
+        posture_issues.append("Make sure your knees are not bent.")
+
+    # Check for hunched shoulders
+    if row['left_armpits_angle'] > 15 or row['right_armpits_angle'] > 15:
+        posture_issues.append("Keep your shoulders relaxed and avoid hunching.")
+
+    # Add more posture checks as needed...
+
+    return posture_issues
