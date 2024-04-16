@@ -21,6 +21,36 @@ from sklearn.preprocessing import LabelEncoder
 # Define a function to split coordinates and create new columns
 # Define a function to split coordinates and create new columns
 
+import math
+import numpy as np
+
+
+def is_shoulders_straight(left_shoulder_x,left_shoulder_y, right_shoulder_x,right_shoulder_y, tolerance=90):
+
+        #Calculate the difference in y-coordinates and x-coordinates
+        dy = left_shoulder_y.iloc[0] - right_shoulder_y.iloc[0]
+        dx = left_shoulder_x.iloc[0] - right_shoulder_x.iloc[0]
+
+        # Calculate the angle with the x-axis
+        angle = math.atan2(dy, dx)
+
+        # Convert angle to degrees
+        angle_deg = math.degrees(angle)
+
+        # Check if the angle is within the tolerance range of 0 degrees
+        return abs(angle_deg) <= tolerance
+
+
+    # # Example usage
+    # left_shoulder = (0.5, 0.7)  # Replace with actual coordinates
+    # right_shoulder = (0.6, 0.7)  # Replace with actual coordinates
+    #
+    # if is_shoulders_straight(left_shoulder, right_shoulder):
+    #     print(" ")
+    # else:
+    #     print("Shoulders are not straight.")
+
+
 def split_coordinates(df, column_name):
     new_columns = ['{}_x'.format(column_name), '{}_y'.format(column_name)]
 
@@ -51,11 +81,6 @@ class NonLinearSVM(tf.keras.Model):
         dual_coefficients = self.dual_coefficients
         kernel_matrix = rbf_kernel(inputs, support_vectors, self.gamma)
         return tf.reduce_sum(tf.multiply(kernel_matrix, dual_coefficients), axis=-1)
-
-
-# Define the loss function for SVM
-def hinge_loss(y_true, y_pred):
-    return tf.reduce_mean(tf.maximum(0., 1 - y_true * y_pred))
 
 
 # Function to calculate Euclidean distance
@@ -152,7 +177,22 @@ def find_angle(row, shoulder, elbow, hand):
         angle = 360 - angle
 
     return angle
-
+def calculate_slope(x1, y1, x2, y2):
+    """Calculate the slope of the line between two points"""
+    x1=float(x1.iloc[0])
+    x2=float(x2.iloc[0])
+    if (x2) - (x1) != 0:
+        return (y2 - y1) / (x2 - x1)
+    else:
+        return np.inf  # Vertical line, slope is infinity
+#
+def detect_hunched_shoulders(rshoulder_x,rshoulder_y,rknee_x,rknee_y, rwaist_x,rwaist_y):
+    # def detect_hunched_shoulders(rshoulder_y, rwais_y, rknee_y):
+        if (float(rshoulder_y.iloc[0]) != -1 and float(rwaist_y.iloc[0]) != -1 and float(rknee_y.iloc[0]) != -1) \
+                and ((float(rshoulder_y.iloc[0]) - float(rwaist_y.iloc[0])) + (float(rwaist_y.iloc[0]) - float(rknee_y.iloc[0])))!=(float(rshoulder_y.iloc[0]) - float(rknee_y.iloc[0])):
+            return True
+        else:
+            return False
 
 def preprocess_new_instance(new_instance, label_encoder_bicepcurl, label_encoder_orientation,scaler=None, encoder=None):
     new_instance = pd.DataFrame(new_instance)
@@ -175,6 +215,7 @@ def preprocess_new_instance(new_instance, label_encoder_bicepcurl, label_encoder
         'keypoint_16': 'left_foot'
     }
     # print(1)
+    # posture_issues = []
 
     # Handle missing or empty values
     new_instance.fillna(-1, inplace=True)  # Assuming missing values are represented as NaN, replace them with 0
@@ -228,6 +269,12 @@ def preprocess_new_instance(new_instance, label_encoder_bicepcurl, label_encoder
                                            new_instance[
                                                'left_knee_y'])  # Assuming a typical distance from waist to knee
 
+    # shoulders_hunched_right = detect_hunched_shoulders(new_instance['right_shoulder_x'], new_instance['right_shoulder_y'], new_instance['right_knee_x'], new_instance['right_knee_y'], new_instance['waist_right_x'], new_instance['waist_right_y'])
+    # shoulders_hunched_left = detect_hunched_shoulders(new_instance['left_shoulder_x'], new_instance['left_shoulder_y'],
+    #                                                    new_instance['left_knee_x'],
+    #                                                    new_instance['left_knee_y'], new_instance['waist_left_x'],
+    #                                                    new_instance['waist_left_y'])
+
     # Add cumulative size column to the DataFrame
     new_instance['cumulative_size'] = calculate_cumulative_size(new_instance)
 
@@ -268,6 +315,12 @@ def preprocess_new_instance(new_instance, label_encoder_bicepcurl, label_encoder
                                                     axis=1)
     # print(6)
     # print(new_instance.columns)
+    shoulders=is_shoulders_straight(new_instance['left_shoulder_x'],new_instance['left_shoulder_y'],new_instance['right_shoulder_x'],new_instance['right_shoulder_y'])
+    if shoulders==False:
+        return new_instance,False,True
+    head=is_shoulders_straight(new_instance['left_ear_x'],new_instance['left_ear_y'],new_instance['right_ear_x'],new_instance['right_ear_y'])
+    if head==False:
+        return new_instance,True,False
 
     # Calculate Euclidean distance between ear and shoulder
     new_instance['ear_shoulder_distance'] = new_instance.apply(
@@ -323,15 +376,16 @@ def preprocess_new_instance(new_instance, label_encoder_bicepcurl, label_encoder
 
     columns_to_drop = [col for col in new_instance.columns if 'x' in col or 'y' in col]
     new_instance = new_instance.drop(columns=columns_to_drop)
-    print(type(new_instance))
+    # print(type(new_instance))
 
     columns_to_drop = ['right_ear', 'left_ear', 'right_shoulder', 'left_shoulder',
                        'right_elbow', 'left_elbow', 'right_hand', 'left_hand',
                        'waist_right', 'waist_left', 'right_knee', 'left_knee',
                        'right_foot', 'left_foot']
     new_instance.drop(columns=columns_to_drop, inplace=True)
+    # hunch= shoulders_hunched_left or shoulders_hunched_right
 
-    return new_instance
+    return new_instance,shoulders,head
 
 
 def extract_features_from_instance(df):
@@ -374,7 +428,7 @@ def extract_features_from_instance(df):
     return df
 
 
-def predict_correctness(df, model):
+def predict_correctness(df,shoulders,head, model):
     # Convert features to a DataFrame
     # features_df = pd.DataFrame([features], columns=features)
     # row_array = df.iloc[0].values
@@ -383,10 +437,14 @@ def predict_correctness(df, model):
     # print(1)
 
     # Use the trained model to make predictions
+    if shoulders == False or head== False:
+        return 1
+
     prediction = model.predict(df)
     # Assuming prediction is your 3D array
     # prediction_flat = np.array(prediction).flatten()
     # print(2)
+
 
     flattened_array = prediction.flatten()
     # print(3)
@@ -397,6 +455,7 @@ def predict_correctness(df, model):
 
     prediction = rounded_array
     # print(4)
+
 
     # with open('label_encoder.pkl', 'rb') as model_file:
     #     label_encoder = pickle.load(model_file)
@@ -411,17 +470,25 @@ def predict_correctness(df, model):
 
     return prediction
 
-def check_posture_conditions(row):
+def check_posture_conditions(row,shoulders,head):
     posture_issues = []
 
+
     # Check for bent knees
-    if row['left_knee_angle'] == 0 or row['right_knee_angle'] == 0:
-        posture_issues.append("Make sure your knees are not bent.")
+    if float(row['left_knee_angle'].iloc[0]) < 140 or float(row['right_knee_angle'].iloc[0]) > 140:
+        posture_issues.append("Make sure your knees are straight\n")
 
-    # Check for hunched shoulders
-    if row['left_armpits_angle'] > 15 or row['right_armpits_angle'] > 15:
-        posture_issues.append("Keep your shoulders relaxed and avoid hunching.")
+    # if hunch==True:
+    #     posture_issues.append("Avoid hunching.\n")
 
-    # Add more posture checks as needed...
+    if shoulders==False:
+        posture_issues.append("Keep your shoulders straight.\n")
+    #     print("Shoulders are not straight.")
 
-    return posture_issues
+    if head==False:
+        posture_issues.append("Make sure that your head is not tilted.\n")
+
+    # Combine all posture issues into a single string with each issue on a new line
+    posture_sentence = "".join(posture_issues)
+
+    return posture_sentence

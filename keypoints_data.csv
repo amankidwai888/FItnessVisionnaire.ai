@@ -1,2 +1,2 @@
-video_name,frame_number,time_interval,keypoint_3,keypoint_4,keypoint_5,keypoint_6,keypoint_7,keypoint_8,keypoint_9,keypoint_10,keypoint_11,keypoint_12,keypoint_13,keypoint_14,keypoint_15,keypoint_16
-webcam,733,24.433333333333334,"(4, 624)","(-6, 341)","(1, 589)","(28, 292)","(185, 536)","(163, 254)","(326, 499)","(314, 245)","(350, 562)","(346, 351)","(423, 567)","(415, 315)","(457, 596)","(463, 372)"
+keypoint_3,keypoint_4,keypoint_5,keypoint_6,keypoint_7,keypoint_8,keypoint_9,keypoint_10,keypoint_11,keypoint_12,keypoint_13,keypoint_14,keypoint_15,keypoint_16
+"(4, 467)","(0, 245)","(34, 506)","(49, 155)","(201, 536)","(208, 70)","(329, 461)","(353, 118)","(341, 504)","(351, 278)","(418, 520)","(411, 221)","(405, 427)","(406, 194)"

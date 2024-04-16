@@ -50,7 +50,7 @@ def get_coordinates(keypoints, point_number):
 import math
 import cv2
 
-def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw=True,correct_posture=1):
+def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw=True,correct_posture=1,feedback =""):
     """
     Find the angle between three specified keypoints and display it on the image.
 
@@ -79,12 +79,14 @@ def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw
         angle = abs(angle)
 
     # Draw on the image
+    # If there are multiple issues, join them with "and"
+
+
 
     if (c1 > confidence_threshold) & (c2 > confidence_threshold) & (c3 > confidence_threshold):
         if draw:
             cv2.line(img, (x1, y1), (x2, y2), color, 2)
             cv2.line(img, (x3, y3), (x2, y2), color, 2)
-
             cv2.circle(img, (x1, y1), 4, color, -1)
             cv2.circle(img, (x1, y1), 7, color, 1)
             cv2.circle(img, (x2, y2), 4, color, -1)
@@ -92,5 +94,12 @@ def find_angle_and_display(img, p1, p2, p3, keypoints,confidence_threshold, draw
             cv2.circle(img, (x3, y3), 4, color, -1)
             cv2.circle(img, (x3, y3), 7, color, 1)
             cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50), cv2.FONT_HERSHEY_PLAIN, 2,color, 2)
+            # # Display text on the image
+            feedback_lines = feedback.split('\n')
+            y_position = 50  # Starting y-position for the first line
+
+            for line in feedback_lines:
+                cv2.putText(img, line, (50, y_position), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                y_position += 30  # Increment y-position for the next line
 
     return angle
