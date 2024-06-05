@@ -20,15 +20,8 @@ warnings.filterwarnings("ignore", category=DataConversionWarning)
 # Your code to load SVM model and label encoder goes here
 
 
-# After loading the SVM model and label encoder
 import tensorflow as tf
 
-#Load SVM model
-# with open("svm_model.pkl", 'rb') as file:
-#     svm_model= pickle.load(file)
-
-# svm_model.summary()
-# svm_model.load_weights("model.weights.h5")
 svm_model=keras.models.load_model("svm_81.11.h5")
 with open("label_encoder_bicepcurlphase.pkl", 'rb') as file:
     label_encoder_bicepcurl = pickle.load(file)
@@ -171,10 +164,9 @@ for video_file in video_files:
         if data_list:
             df = pd.DataFrame(data_list)
 
-
         # Predict correctness using SVM model
 
-        df_pp=svm.preprocess_new_instance(df,label_encoder_bicepcurl=label_encoder_bicepcurl,label_encoder_orientation=label_encoder_orientation)
+        df_pp,shoulders,head=svm.preprocess_new_instance(df,label_encoder_bicepcurl=label_encoder_bicepcurl,label_encoder_orientation=label_encoder_orientation)
         # df_pp = svm.extract_features_from_instance(df_pp)
         # print(df_pp.shape)
         # print(df_pp.head())
@@ -186,22 +178,25 @@ for video_file in video_files:
                     'waist_right_y', 'waist_left_x', 'waist_left_y', 'right_knee_x', 'right_knee_y', 'left_knee_x',
                     'left_knee_y', 'right_elbow_angle', 'left_elbow_angle', 'right_waist_angle', 'left_waist_angle',
                     'bicep_curl_phase_encoded']
+        feedback = ""
 
-        # posture = True
-        correctness_prediction = svm.predict_correctness(df_pp, svm_model)
+        correctness_prediction= svm.predict_correctness(df=df_pp,shoulders=shoulders,head=head,model= svm_model)
         if(correctness_prediction==1):
             posture = False
-            feedback = svm.check_posture_conditions(df_pp)
+            # print(df_pp['left_knee_angle'])
+            # print(df_pp['right_knee_angle'])
+            feedback = svm.check_posture_conditions(df_pp,shoulders,head)
+            # print(feedback)
+
         if(correctness_prediction==0):
             posture = True
 
-
         # #Biceps annotations
-        # posture = False
-        mm.find_angle_and_display(frame, 5, 7, 9, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
-        mm.find_angle_and_display(frame, 6, 8, 10, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
-        mm.find_angle_and_display(frame, 6, 12, 14, keypoints_with_scores, 0.3, draw=True,correct_posture=posture)
-        mm.find_angle_and_display(frame, 5, 11, 13, keypoints_with_scores, 0.3, draw=True, correct_posture=posture)
+        mm.find_angle_and_display(frame, 5, 7, 9, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
+        mm.find_angle_and_display(frame, 6, 8, 10, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
+        mm.find_angle_and_display(frame, 6, 12, 14, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
+        mm.find_angle_and_display(frame, 5, 11, 13, keypoints_with_scores, 0.3, draw=True, correct_posture=posture,feedback=feedback)
+        # mm.find_angle_and_display(frame, 5, 6, 6, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
 
         # Display correctness prediction for the current frame
         # print(f'Frame {frame_number} - Correctness Prediction: {correctness_prediction}')
