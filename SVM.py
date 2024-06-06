@@ -25,7 +25,7 @@ import math
 import numpy as np
 
 
-def is_shoulders_straight(left_shoulder_x,left_shoulder_y, right_shoulder_x,right_shoulder_y, tolerance=90):
+def is_shoulders_straight(left_shoulder_x,left_shoulder_y, right_shoulder_x,right_shoulder_y, tolerance=95):
 
         #Calculate the difference in y-coordinates and x-coordinates
         dy = left_shoulder_y.iloc[0] - right_shoulder_y.iloc[0]
@@ -475,7 +475,7 @@ def check_posture_conditions(row,shoulders,head):
 
 
     # Check for bent knees
-    if float(row['left_knee_angle'].iloc[0]) < 140 or float(row['right_knee_angle'].iloc[0]) > 140:
+    if float(row['left_knee_angle'].iloc[0]) < 90 or float(row['right_knee_angle'].iloc[0]) > 300:
         posture_issues.append("Make sure your knees are straight\n")
 
     # if hunch==True:

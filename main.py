@@ -57,6 +57,9 @@ EDGES = {
     (12, 14): 'c',
     (14, 16): 'c'
 }
+bicep_form='unknown'
+prev_form='unknown'
+bicep_count=0
 
 shaped = np.squeeze(
     np.multiply(interpreter.get_tensor(interpreter.get_output_details()[0]['index']), [480, 640, 1]))
@@ -78,7 +81,7 @@ df = pd.DataFrame(columns=columns)
 # Make Detections
 
 # # code for training annotations on dataset
-folder_path = 'new'
+folder_path = 'squat_sample'
 output_folder_path = 'Train_annotated'
 
 
@@ -88,7 +91,7 @@ video_files = [f for f in os.listdir(folder_path) if f.endswith('.mp4')]
 # Iterate over each video file
 for video_file in video_files:
     video_path = os.path.join(folder_path, video_file)
-    output_video_path = os.path.join(output_folder_path, f"annotated_{video_file}")
+    output_video_path = os.path.join(output_folder_path, f"annotated_{video_file}.mp4")
     # cap = cv2.VideoCapture(video_path)
     #for reading from webcam
     cap = cv2.VideoCapture(0)
@@ -98,10 +101,12 @@ for video_file in video_files:
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
     fps = int(cap.get(5))
+    # fps = 20
 
 
     # Define the codec and create a VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out=cv2.VideoWriter()
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
     frame_number = 0
@@ -121,7 +126,7 @@ for video_file in video_files:
 
 
         frame = cv2.resize(frame, (640,480))
-        # start_time_MN = time.time()
+        start_time_MN = time.time()
 
 
         # Reshape image
@@ -133,7 +138,7 @@ for video_file in video_files:
         input_details = interpreter.get_input_details()
         output_details = interpreter.get_output_details()
 
-        start_time_MN = time.time()
+        # start_time_MN = time.time()
         # Make predictions
         interpreter.set_tensor(input_details[0]['index'], np.array(input_image))
         interpreter.invoke()
@@ -190,13 +195,23 @@ for video_file in video_files:
 
         if(correctness_prediction==0):
             posture = True
+            form=mm.get_bicep_body_form(keypoints_with_scores)
+            if prev_form=='open' and form=='closed':
 
-        # #Biceps annotations
+                bicep_count+=0.5
+            if prev_form=='closed' and form=='open':
+                bicep_count+=0.5
+            prev_form=form
+        print("Bicep Count:",int(bicep_count))
+
+        # #Biceps annotationsq
         mm.find_angle_and_display(frame, 5, 7, 9, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
         mm.find_angle_and_display(frame, 6, 8, 10, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
         mm.find_angle_and_display(frame, 6, 12, 14, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
         mm.find_angle_and_display(frame, 5, 11, 13, keypoints_with_scores, 0.3, draw=True, correct_posture=posture,feedback=feedback)
-        # mm.find_angle_and_display(frame, 5, 6, 6, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
+        mm.find_angle_and_display(frame, 11, 13, 15, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
+
+        mm.find_angle_and_display(frame, 12, 14, 16, keypoints_with_scores, 0.3, draw=True,correct_posture=posture,feedback=feedback)
 
         # Display correctness prediction for the current frame
         # print(f'Frame {frame_number} - Correctness Prediction: {correctness_prediction}')
@@ -204,8 +219,18 @@ for video_file in video_files:
             print("Incorrect")
         elif correctness_prediction == 0:
             print("Correct")
+            form=mm.get_bicep_body_form(keypoints_with_scores)
+            if prev_form=='open' and form=='closed':
+
+                bicep_count+=0.5
+            if prev_form=='closed' and form=='open':
+                bicep_count+=0.5
+                prev_form=form
+        frame=mm.display_bicep_count(frame,int(bicep_count))
+
+        # frame= cv2.resize(frame, (frame_width, frame_height))
         # Save the annotated frame to the output video
-        # out.write(frame)
+        out.write(frame)
         endtime_time_MN = time.time()
 
         # Calculate latency for current frame
@@ -226,3 +251,24 @@ csv_file_path = 'keypoints_data.csv'
 df.to_csv(csv_file_path, index=False)
 
 print(f'DataFrame saved to {csv_file_path}')
+
+
+
+# void connectKeypoints(
+#       Canvas canvas, int i, int j, Paint paint, Paint pointPaint) {
+#     double x1 = keypoints[0][i][1] * width;
+#     double y1 = keypoints[0][i][0] * height;
+#     double x2 = keypoints[0][j][1] * width;
+#     double y2 = keypoints[0][j][0] * height;
+
+
+#     canvas.drawLine(Offset(x1, y1), Offset(x2, y2), paint);
+#     canvas.drawCircle(Offset(x1, y1), 3, pointPaint);
+#     canvas.drawCircle(Offset(x2, y2), 3, pointPaint);
+#   }
+
+#   @override
+#   bool shouldRepaint(CustomPainter oldDelegate) {
+#     return true;
+#   }
+# }
